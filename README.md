@@ -55,7 +55,8 @@ logger.addDebugBindEntry(bindGroupEntries);
 // 5. set the commandEncoder
 logger.setCommandEncoder(commandEncoder);
 
-// 6. after submitting the job you can retrieve and print the log device.queue.submit([commandEncoder.finish()]);
+// 6. after submitting the job you can retrieve and print the log
+device.queue.submit([commandEncoder.finish()]);
 let log = await logger.getLog();
 let lines = log.split("\n");
 for(let line of lines)
