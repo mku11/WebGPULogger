@@ -3,9 +3,10 @@ WebGPULogger is a logger for WGSL shaders.
 Print and debug strings, i32, u32, array, and vectors.   
 ASCII chars supported only.
 
-Shader:  
+## Example
+
+### WGSL Shader
 ```
-// Inside WGSL
 // Logging: make sure you log only for a specific workitem/global_id
 // if you don't the last workitem/global_id will overwrite the log
 // so if you have multiple dimensions you need to specify all of them
@@ -24,7 +25,7 @@ var test = array<u32, 4>(1,2,3,4);
 console.log("subarray:", test[1:3]);
 ```
 
-JavaScript:  
+### JavaScript
 ```
 import { WebGPULogger } from "./webgpu_logger.js";
 
