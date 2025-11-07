@@ -4,7 +4,7 @@ Print and debug strings, u32, array, and vectors.
 ASCII chars supported only.  
 Published under MIT License  
 
-Note: There are 2 reserved integers -1,-2 that are used for markers for the logger so you won't be able to print those. Though you're free to modify and reserve any other values you want.
+Note: There are 2 reserved integers -1,-2 that are used for markers for the logger so you won't be able to print those. Though you're free to modify and reserve any other values you want.  
 const INTSEQ_START_MARK = -1 >>> 0;
 const INTSEQ_END_MARK = -2 >>> 0;
 
