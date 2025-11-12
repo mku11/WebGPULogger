@@ -23,10 +23,13 @@ SOFTWARE.
 */
 // mark the start and begin of integer value sequences in the log
 // we reserve two large unsigned integers for marking purposes
+// you can modify them to your reserved values
 const INTSEQ_START_MARK = -1 >>> 0;
 const INTSEQ_END_MARK = -2 >>> 0;
+
 // max characters per line for the log
 const MAX_LINE_CHARS = 128;
+
 /**
  * Logger for WebGPU
  * Enable debugging for the global_id you want to debug inside your main function:
@@ -64,65 +67,88 @@ export class WebGPULogger {
     constructor(device) {
         this.#device = device;
     }
+	
+		
     /**
-     * Get the debug shader
-     * @param shader The current shader to debug
+     * Set the bind group layout entries
+     * @param bindGroupLayoutEntries The bind group layout entries
+     */
+    setBindGroupLayoutEntries(bindGroupLayoutEntries) {
+        if (this.#bindLayoutEntry)
+            throw new Error("Debug bind layout entry already added");
+        this.#bindLayoutEntry = {
+            binding: bindGroupLayoutEntries.length,
+            // @ts-ignore
+            visibility: GPUShaderStage.COMPUTE,
+            buffer: { type: "storage" },
+        };
+        bindGroupLayoutEntries.push(this.#bindLayoutEntry);
+    }
+	
+    /**
+     * Get the log shader
+     * @param shader The current shader to log
      * @param bindGroupLayoutEntries The binding group layout entries
      * @returns The debuggable shader
      */
-    createDebugShader(shader, bindGroupLayoutEntries) {
+    createLogShader(shader, bindGroupLayoutEntries) {
         if (this.#shader)
-            throw new Error("Debug shader already added");
-        let dgbShader = shader + "\n\n" + `
-    // DEBUGGING
-    @group(0) @binding(${bindGroupLayoutEntries.length - 1})
-    var<storage, read_write> dbgLog: array<u32>;
-    
-    var<private> enableLog: bool = false;
-    fn enable_log(
-      value: bool,
-    ) {
-      enableLog = value;
-    }
+            throw new Error("Log shader already created");
+		let logShader=
+`
+// DEBUGGING
+@group(0) @binding(${bindGroupLayoutEntries.length - 1})
+var<storage, read_write> dbgLog: array<u32>;
 
-    // max number of chars for a line:
-    const MAX_LINE_CHARS: u32 = ${MAX_LINE_CHARS};
-    const INTSEQ_START_MARK: u32 = ${INTSEQ_START_MARK};
-    const INTSEQ_END_MARK: u32 = ${INTSEQ_END_MARK};
-    
-    // we segment the debug buffer to identify messages
-    // from each thread/item in every workgroup:
-    fn log(
-      msg: array<u32,MAX_LINE_CHARS>
-    ) {
-        if(!enableLog) {
-          return;
-        }
-        // first element of the segment is to keep 
-        // track the position of the last byte written
-        var idx = dbgLog[0] + 1;
-        var isSequence: bool = false;
-        for(var i: u32 = 0; i < MAX_LINE_CHARS; i++) {
-          if(msg[i] == 0 && !isSequence) {
-            break;
-          }
-          if(msg[i] == INTSEQ_START_MARK) {
-            isSequence = true;
-          }
-          if(msg[i] == INTSEQ_END_MARK) {
-            isSequence = false;
-          }
-          dbgLog[idx] = msg[i];
-          idx+=1;  
-        }
-        dbgLog[0] = idx - 1;
-    }
-    `;
-        this.#shader = this.#subst(dgbShader);
+var<private> enableLog: bool = false;
+fn enable_log(
+	value: bool,
+) {
+	enableLog = value;
+}
+
+// max number of chars for a line:
+const MAX_LINE_CHARS: u32 = ${MAX_LINE_CHARS};
+const INTSEQ_START_MARK: u32 = ${INTSEQ_START_MARK};
+const INTSEQ_END_MARK: u32 = ${INTSEQ_END_MARK};
+
+fn log(
+  msg: array<u32,MAX_LINE_CHARS>
+) {
+	if(!enableLog) {
+	  return;
+	}
+	// first element of the log is to keep 
+	// track the position of the last byte written
+	var idx = dbgLog[0] + 1;
+	var isSequence: bool = false;
+	for(var i: u32 = 0; i < MAX_LINE_CHARS; i++) {
+	  if(msg[i] == 0 && !isSequence) {
+	break;
+	  }
+	  if(msg[i] == INTSEQ_START_MARK) {
+	isSequence = true;
+	  }
+	  if(msg[i] == INTSEQ_END_MARK) {
+	isSequence = false;
+	  }
+	  dbgLog[idx] = msg[i];
+	  idx+=1;  
+	}
+	dbgLog[0] = idx - 1;
+}
+`;
+        logShader = shader + "\n\n" + logShader;
+        this.#shader = this.#subst(logShader);
         return this.#shader;
     }
-    #subst(shader) {
-        let sshader = shader.replace(/(console.log.*?)\((.*?)\);/ig, function (m, fn, ps) {
+	
+	/**
+     * Substitute params
+     * @param shader The log shader
+     */
+    #subst(logShader) {
+        let sshader = logShader.replace(/(console.log.*?)\((.*?)\);/ig, function (m, fn, ps) {
             let params = ps.split(",");
             let els = [];
             for (let param of params) {
@@ -163,26 +189,12 @@ export class WebGPULogger {
         });
         return sshader;
     }
+	
     /**
-     * Add the debug buffer to the bind group layout entries
-     * @param bindLayoutEntries
+     * Set the bind group entries
+     * @param bindGroupEntries The bind group entries
      */
-    addDebugBindLayoutEntry(bindLayoutEntries) {
-        if (this.#bindLayoutEntry)
-            throw new Error("Debug bind layout entry already added");
-        this.#bindLayoutEntry = {
-            binding: bindLayoutEntries.length,
-            // @ts-ignore
-            visibility: GPUShaderStage.COMPUTE,
-            buffer: { type: "storage" },
-        };
-        bindLayoutEntries.push(this.#bindLayoutEntry);
-    }
-    /**
-     * Add the debug buffer to the bind group entries
-     * @param bindEntries
-     */
-    addDebugBindEntry(bindEntries) {
+    setBindGroupEntries(bindGroupEntries) {
         this.#buffer = this.#device.createBuffer({
             label: 'bufferDbg',
             size: 4 * this.#maxSize,
@@ -196,13 +208,14 @@ export class WebGPULogger {
             usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
         });
         let bindEntry = {
-            binding: bindEntries.length,
+            binding: bindGroupEntries.length,
             resource: {
                 buffer: this.#buffer
             }
         };
-        bindEntries.push(bindEntry);
+        bindGroupEntries.push(bindEntry);
     }
+	
     /**
      * Set command encoder
      * @param commandEncoder
@@ -210,6 +223,7 @@ export class WebGPULogger {
     setCommandEncoder(commandEncoder) {
         commandEncoder.copyBufferToBuffer(this.#buffer, 0, this.#stgBuffer, 0, 4 * this.#maxSize);
     }
+	
     /**
      * Get the WebGPU log
      * @returns The log

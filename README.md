@@ -34,36 +34,60 @@ console.log("subarray:", test[1:3]);
 
 ### JavaScript
 ```
-import { WebGPULogger } from "./webgpu_logger.js";
+// 1. import the logger module
+import { WebGPULogger
+ } from "./webgpu_logger.js";
+```
 
-let adapter = await nav.gpu.requestAdapter();
-let device = await adapter.requestDevice();
-
-// 1. create a logger
+```
+// 2. create a logger
 let logger=new WebGPULogger();
+```
 
-// 2. add the debug layout entry to your layout entries
+```
+// 3. set your layout entries to the logger right after you create them:
+// your layout entries
 let layoutEntries = [
-	{binding: 0, visibility: GPUShaderStage.COMPUTE, buffer: { type: "storage"}}
+	{binding: 0, ...},
+	{binding: 1, ...},
+	{binding: 2, ...},
 	];
-logger.addDebugBindLayoutEntry(layoutEntries);
-device.createBindGroupLayout({entries: layoutEntries});
+logger.setBindGroupLayoutEntries(layoutEntries);
+// a debug layout entry is now added to your entries, you can now create your bind group layout
+let bindGroupLayout = device.createBindGroupLayout({entries: layoutEntries});
+```
 
-// 3. add the debug shader to your shader
-let shader = "..."; // your shader
-let debugShader = logger.createDebugShader(shader, layoutEntries);
-// this is now the shaderModule to create your compute pipeline
-const shaderModule = device.createShaderModule({code: debugShader});
+```
+// 3. pass your shader and the previous layout entries to get a log shader
+let shader = "..."; // your WGSL shader
+let logShader = logger.createLogShader(shader, layoutEntries);
+// now you can create your shader module
+const shaderModule = device.createShaderModule({code: logShader});
+```
 
-// 4. add the debug buffer bind entry to your entries
-const bindEntries = [
-	{binding: 0, resource: {buffer: buffer}}
+```
+// 4. set the bind gorup entries to the logger right after you create them
+// your bind entries
+const bindGroupEntries = [
+	{binding: 0, ...},
+	{binding: 1, ...},
+	{binding: 2, ...}
 ];
-logger.addDebugBindEntry(bindGroupEntries);
+logger.setBindGroupEntries(bindGroupEntries);
+// you can now create the bind group
+const bindGroup = device.createBindGroup({
+	label: 'transformBindGroup',
+	layout: bindGroupLayout,
+	entries: bindGroupEntries,
+});
+```
 
+```	
 // 5. set the commandEncoder
 logger.setCommandEncoder(commandEncoder);
+```
 
+```
 // 6. after submitting the job you can retrieve and print the log
 device.queue.submit([commandEncoder.finish()]);
 let log = await logger.getLog();
