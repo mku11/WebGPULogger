@@ -35,13 +35,12 @@ console.log("subarray:", test[1:3]);
 ### JavaScript
 ```
 // 1. import the logger module
-import { WebGPULogger
- } from "./webgpu_logger.js";
+import { WebGPULogger } from "./webgpu_logger.js";
 ```
 
 ```
 // 2. create a logger
-let logger=new WebGPULogger();
+let logger = new WebGPULogger();
 ```
 
 ```
@@ -53,7 +52,7 @@ let layoutEntries = [
 	{binding: 2, ...},
 	];
 logger.setBindGroupLayoutEntries(layoutEntries);
-// a debug layout entry is now added to your entries, you can now create your bind group layout
+// you can now create your bind group layout
 let bindGroupLayout = device.createBindGroupLayout({entries: layoutEntries});
 ```
 
