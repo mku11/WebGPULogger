@@ -57,7 +57,7 @@ let bindGroupLayout = device.createBindGroupLayout({entries: layoutEntries});
 ```
 
 ```
-// 3. pass your shader and the previous layout entries to get a log shader
+// 4. pass your shader and the previous layout entries to get a log shader
 let shader = "..."; // your WGSL shader
 let logShader = logger.createLogShader(shader, layoutEntries);
 // now you can create your shader module
@@ -65,7 +65,7 @@ const shaderModule = device.createShaderModule({code: logShader});
 ```
 
 ```
-// 4. set the bind gorup entries to the logger right after you create them
+// 5. set the bind gorup entries to the logger right after you create them
 // your bind entries
 const bindGroupEntries = [
 	{binding: 0, ...},
@@ -82,12 +82,12 @@ const bindGroup = device.createBindGroup({
 ```
 
 ```	
-// 5. set the commandEncoder
+// 6. set the commandEncoder
 logger.setCommandEncoder(commandEncoder);
 ```
 
 ```
-// 6. after submitting the job you can retrieve and print the log
+// 7. after submitting the job you can retrieve and print the log
 device.queue.submit([commandEncoder.finish()]);
 let log = await logger.getLog();
 let lines = log.split("\n");
