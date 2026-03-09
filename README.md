@@ -10,7 +10,11 @@ const INTSEQ_START_MARK = -1 >>> 0;
 const INTSEQ_END_MARK = -2 >>> 0;  
 ```
 
-## Example
+## Sample
+An example of the WebGPULogger integration can be found in: https://github.com/mku11/Salmon-AES-CTR/blob/main/libs/src/typescript/salmon-core/salmon/bridge/webgpu.ts  
+Or scroll down and follow the steps to integrate into your webgpu project.  
+
+## Quickstart
 
 ### WGSL Shader
 ```
